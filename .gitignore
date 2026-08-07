@@ -60,3 +60,8 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# 資料管線的原始檔快取（可由 tools/build_dict.py 重新下載）
+tools/.cache/
+__pycache__/
+*.pyc
