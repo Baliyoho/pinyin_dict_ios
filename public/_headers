@@ -1,0 +1,9 @@
+# 全部走「每次重新驗證」：離線是由 Service Worker 負責，
+# HTTP 快取如果留住舊檔，反而會讓新版部署裝不上去。
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/icons/*
+  Cache-Control: public, max-age=86400

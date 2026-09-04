@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>拼音字典</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="輸入漢字，查出對應的拼音輸入。可加入主畫面，離線使用。">
+<meta name="theme-color" content="#f7f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="拼音字典">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>拼音字典</h1>
+  <button id="status" class="status" type="button" aria-live="polite">載入中…</button>
+</header>
+
+<main>
+  <form class="search" id="search-form" autocomplete="off">
+    <input id="query" type="search" inputmode="text" enterkeyhint="search"
+           placeholder="輸入漢字，例如：銀行" aria-label="輸入漢字"
+           autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button id="clear" class="clear" type="button" aria-label="清除" hidden>&times;</button>
+  </form>
+
+  <section id="results" hidden>
+    <div class="card readout">
+      <div class="row">
+        <span class="row-label">拼音</span>
+        <button class="copy" type="button" data-copy="tones">複製</button>
+      </div>
+      <p id="out-tones" class="tones"></p>
+      <div class="row">
+        <span class="row-label">拼音輸入<small>（要打的字母）</small></span>
+        <button class="copy" type="button" data-copy="keys">複製</button>
+      </div>
+      <p id="out-keys" class="keys"></p>
+      <p id="out-note" class="note" hidden></p>
+    </div>
+
+    <h2 class="section-title">逐字對照</h2>
+    <div id="cards" class="cards"></div>
+  </section>
+
+  <section id="empty" class="empty">
+    <p class="empty-title">輸入漢字即可查詢</p>
+    <p class="empty-body">會依照詞組判斷多音字的讀音，並列出在鍵盤上實際要打的字母。</p>
+    <div class="examples">
+      <button type="button" class="example">銀行</button>
+      <button type="button" class="example">重新開始</button>
+      <button type="button" class="example">綠色的音樂</button>
+      <button type="button" class="example">還沒還錢</button>
+    </div>
+  </section>
+
+  <section id="history-box" class="history" hidden>
+    <div class="row">
+      <h2 class="section-title">最近查詢</h2>
+      <button id="clear-history" class="linkish" type="button">清除</button>
+    </div>
+    <div id="history" class="chips"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>字音資料：pypinyin、CC-CEDICT（CC BY-SA 4.0）</p>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="./app.js"></script>
+</body>
+</html>
