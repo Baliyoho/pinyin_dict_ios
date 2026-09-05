@@ -1,4 +1,4 @@
-/* 拼音字典 — 輸入漢字，查出對應的拼音輸入。整份資料離線存在裝置上。 */
+/* 拼音字典 — 輸入漢字，查出在 iOS 拼音鍵盤上要打的字母。整份資料離線存在裝置上。 */
 (() => {
   "use strict";
 
@@ -8,13 +8,6 @@
   const INPUT_MAX = 200;
 
   const HAN = /\p{Script=Han}/u;
-
-  // index 0 是無聲調（輕聲）的寫法，1–4 依序是四聲。
-  const TONE_TABLE = {
-    a: "aāáǎà", o: "oōóǒò", e: "eēéěè",
-    i: "iīíǐì", u: "uūúǔù", "ü": "üǖǘǚǜ",
-    n: "nnńňǹ", m: "mmḿm̌m̀",
-  };
 
   const chars = new Map();   // 字 -> ["zhong1", "zhong4"]
   const words = new Map();   // 詞 -> ["yin2 hang2"]
@@ -27,7 +20,6 @@
     status: document.getElementById("status"),
     results: document.getElementById("results"),
     empty: document.getElementById("empty"),
-    tones: document.getElementById("out-tones"),
     keys: document.getElementById("out-keys"),
     note: document.getElementById("out-note"),
     cards: document.getElementById("cards"),
@@ -37,33 +29,11 @@
     toast: document.getElementById("toast"),
   };
 
-  /* ---------------- 拼音表示法 ---------------- */
+  /* ---------------- 讀音 -> 鍵盤字母 ---------------- */
 
-  // "zhong1" -> "zhōng"，"lv4" -> "lǜ"，"de5" -> "de"
-  function toneMarked(numbered) {
-    const tone = Number(numbered.slice(-1));
-    const base = numbered.slice(0, -1).replace(/v/g, "ü");
-    if (!tone || tone === 5) return base;
-
-    let idx = base.indexOf("a");
-    if (idx < 0) idx = base.indexOf("o");
-    if (idx < 0) idx = base.indexOf("e");
-    if (idx < 0) {
-      for (let i = base.length - 1; i >= 0; i--) {
-        if ("iuü".includes(base[i])) { idx = i; break; }
-      }
-    }
-    if (idx < 0) idx = base.length - 1;
-
-    const row = TONE_TABLE[base[idx]];
-    if (!row) return base;
-    return base.slice(0, idx) + row[tone] + base.slice(idx + 1);
-  }
-
-  // 鍵盤上實際要打的字母：去掉聲調，ü 打成 v。
+  // 字典存的是帶調號碼的拼音（zhong1、lv4）。鍵盤上打的就是去掉聲調的部分，
+  // ü 本來就存成 v，正好是 iOS 拼音鍵盤要打的鍵。
   const keystrokes = (numbered) => numbered.slice(0, -1);
-
-  const toneNumber = (numbered) => Number(numbered.slice(-1)) || 5;
 
   // 字典裡以 "~" 開頭的是罕見／異讀，平常不該拿來當預設讀音。
   function readingsFor(ch) {
@@ -76,17 +46,19 @@
 
   const primaryOf = (list) => (list.find((r) => !r.rare) || list[0] || null);
 
-  // 只有常用讀音才算數；輕聲（頭 tou2/tou5）視為同一個音的變體。
-  function isPolyphonic(list) {
-    const common = list.filter((r) => !r.rare);
-    const distinct = new Set();
-    for (const reading of common) {
-      const base = reading.py.slice(0, -1);
-      const neutral = reading.py.slice(-1) === "5";
-      if (neutral && common.some((o) => o !== reading && o.py.slice(0, -1) === base)) continue;
-      distinct.add(reading.py);
+  // 只差聲調的讀音（好 hǎo/hào）打起來一樣，對輸入來說是同一種拼法，合併掉。
+  function spellingsOf(readings) {
+    const out = [];
+    for (const reading of readings) {
+      const key = keystrokes(reading.py);
+      const seen = out.find((s) => s.key === key);
+      if (seen) {
+        if (!reading.rare) seen.rare = false;
+      } else {
+        out.push({ key, rare: reading.rare });
+      }
     }
-    return distinct.size > 1;
+    return out;
   }
 
   /* ---------------- 資料 ---------------- */
@@ -117,7 +89,7 @@
 
   /* ---------------- 斷詞 ---------------- */
 
-  // 以最長詞優先切分，讓多音字依詞組決定讀音（銀行 háng、不是 xíng）。
+  // 以最長詞優先切分，讓多音字依詞組決定打法（銀行 打 hang，不是 xing）。
   function segment(text) {
     const cps = Array.from(text);
     const tokens = [];
@@ -156,7 +128,7 @@
     return tokens;
   }
 
-  // 攤平成逐字資料，附上該字的其他可能讀音。
+  // 攤平成逐字資料，附上該字的其他拼法。
   function analyse(text) {
     const tokens = segment(text.slice(0, INPUT_MAX));
     const items = [];
@@ -168,10 +140,14 @@
       }
       const cps = Array.from(token.text);
       const cells = cps.map((ch, n) => {
-        const chosen = token.syllables[n] || null;
-        const all = readingsFor(ch);
-        if (chosen && !all.some((r) => r.py === chosen)) all.unshift({ py: chosen, rare: false });
-        return { char: ch, chosen, all, multi: isPolyphonic(all) };
+        const reading = token.syllables[n];
+        const chosen = reading ? keystrokes(reading) : null;
+        const spellings = spellingsOf(readingsFor(ch));
+        if (chosen && !spellings.some((s) => s.key === chosen)) {
+          spellings.unshift({ key: chosen, rare: false });
+        }
+        const multi = spellings.filter((s) => !s.rare).length > 1;
+        return { char: ch, chosen, spellings, multi };
       });
       items.push({ kind: "word", text: token.text, cells, isWord: cps.length > 1 });
     }
@@ -183,7 +159,6 @@
   function render(text) {
     const items = analyse(text);
     el.cards.textContent = "";
-    el.tones.textContent = "";
     el.keys.textContent = "";
 
     let usesV = false;
@@ -194,43 +169,36 @@
       if (item.kind === "other") {
         const plain = item.text.trim();
         if (plain) {
-          for (const target of [el.tones, el.keys]) {
-            const span = document.createElement("span");
-            span.className = "w plain";
-            span.textContent = plain;
-            target.appendChild(span);
-          }
+          const span = document.createElement("span");
+          span.className = "w plain";
+          span.textContent = plain;
+          el.keys.appendChild(span);
         }
         continue;
       }
 
-      const toneSpan = document.createElement("span");
       const keySpan = document.createElement("span");
-      toneSpan.className = keySpan.className = "w";
+      keySpan.className = "w";
 
       for (const cell of item.cells) {
         if (!cell.chosen) {
           unknown++;
-          toneSpan.textContent += cell.char;
           keySpan.textContent += "?";
-          el.cards.appendChild(cardFor(cell, item));
-          continue;
+        } else {
+          if (cell.chosen.includes("v")) usesV = true;
+          if (cell.multi) multi++;
+          keySpan.textContent += cell.chosen;
         }
-        if (cell.chosen.includes("v")) usesV = true;
-        if (cell.multi) multi++;
-        toneSpan.textContent += toneMarked(cell.chosen);
-        keySpan.textContent += keystrokes(cell.chosen);
         el.cards.appendChild(cardFor(cell, item));
       }
 
-      el.tones.appendChild(toneSpan);
       el.keys.appendChild(keySpan);
     }
 
     const notes = [];
-    if (usesV) notes.push("ü 在拼音鍵盤上要打 v（綠 lǜ → 打 lv）。");
-    if (multi) notes.push(`有 ${multi} 個多音字，讀音已依詞組判斷，點字卡可看其他讀音。`);
-    if (unknown) notes.push(`有 ${unknown} 個字查不到讀音。`);
+    if (usesV) notes.push("ü 在拼音鍵盤上要打 v（綠 → 打 lv）。");
+    if (multi) notes.push(`有 ${multi} 個字不只一種打法，這裡已依詞組挑好，點字卡可看其他拼法。`);
+    if (unknown) notes.push(`有 ${unknown} 個字查不到打法。`);
     el.note.textContent = notes.join(" ");
     el.note.hidden = notes.length === 0;
 
@@ -248,19 +216,11 @@
     glyph.className = "glyph";
     glyph.textContent = cell.char;
 
-    const py = document.createElement("span");
-    py.className = "py";
-    py.textContent = cell.chosen ? toneMarked(cell.chosen) : "—";
-
     const key = document.createElement("span");
     key.className = "key";
-    key.textContent = cell.chosen ? keystrokes(cell.chosen) : "";
+    key.textContent = cell.chosen || "—";
 
-    const tone = document.createElement("span");
-    tone.className = "tone";
-    tone.textContent = cell.chosen ? (toneNumber(cell.chosen) === 5 ? "輕" : String(toneNumber(cell.chosen))) : "";
-
-    button.append(glyph, py, key, tone);
+    button.append(glyph, key);
     button.addEventListener("click", () => toggleAlts(button, cell, item));
     return button;
   }
@@ -279,23 +239,25 @@
 
     const title = document.createElement("h3");
     title.textContent = item.isWord
-      ? `「${item.text}」的${cell.char}讀 ${cell.chosen ? toneMarked(cell.chosen) : "—"}`
-      : `「${cell.char}」的讀音`;
+      ? `「${item.text}」的${cell.char}打 ${cell.chosen || "—"}`
+      : `「${cell.char}」的打法`;
 
     const list = document.createElement("ul");
-    const ordered = [...cell.all].sort((a, b) => Number(a.rare) - Number(b.rare));
-    for (const reading of ordered) {
+    const ordered = [...cell.spellings].sort((a, b) => Number(a.rare) - Number(b.rare));
+    for (const spelling of ordered) {
       const li = document.createElement("li");
-      li.className = [reading.py === cell.chosen ? "on" : "", reading.rare ? "rare" : ""]
+      li.className = [spelling.key === cell.chosen ? "on" : "", spelling.rare ? "rare" : ""]
         .filter(Boolean)
         .join(" ");
-      li.textContent = toneMarked(reading.py);
-      const code = document.createElement("code");
-      code.textContent = keystrokes(reading.py) + (reading.rare ? " 罕用" : "");
-      li.appendChild(code);
+      li.textContent = spelling.key;
+      if (spelling.rare) {
+        const tag = document.createElement("code");
+        tag.textContent = "罕用";
+        li.appendChild(tag);
+      }
       list.appendChild(li);
     }
-    if (!cell.all.length) {
+    if (!cell.spellings.length) {
       const li = document.createElement("li");
       li.textContent = "查無資料";
       list.appendChild(li);
@@ -408,10 +370,9 @@
     });
 
     for (const button of document.querySelectorAll(".copy")) {
-      button.addEventListener("click", () => {
-        const target = button.dataset.copy === "keys" ? el.keys : el.tones;
-        copy(Array.from(target.children).map((n) => n.textContent).join(" ").trim());
-      });
+      button.addEventListener("click", () =>
+        copy(Array.from(el.keys.children).map((n) => n.textContent).join(" ").trim())
+      );
     }
 
     for (const button of document.querySelectorAll(".example")) {

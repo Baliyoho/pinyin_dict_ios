@@ -1,5 +1,5 @@
 /* 把整個 App 和字典資料存到裝置上，之後完全不連網也能用。 */
-const VERSION = "3d6f83090ad8";
+const VERSION = "c9ac4f7ba22b";
 const CACHE = "pinyin-dict-" + VERSION;
 
 const ASSETS = [

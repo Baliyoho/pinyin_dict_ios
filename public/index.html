@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>拼音字典</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="輸入漢字，查出對應的拼音輸入。可加入主畫面，離線使用。">
+<meta name="description" content="輸入漢字，查出在 iOS 拼音鍵盤上要打的字母。可加入主畫面，離線使用。">
 <meta name="theme-color" content="#f7f4ef" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,13 +32,8 @@
   <section id="results" hidden>
     <div class="card readout">
       <div class="row">
-        <span class="row-label">拼音</span>
-        <button class="copy" type="button" data-copy="tones">複製</button>
-      </div>
-      <p id="out-tones" class="tones"></p>
-      <div class="row">
         <span class="row-label">拼音輸入<small>（要打的字母）</small></span>
-        <button class="copy" type="button" data-copy="keys">複製</button>
+        <button class="copy" type="button">複製</button>
       </div>
       <p id="out-keys" class="keys"></p>
       <p id="out-note" class="note" hidden></p>
@@ -50,7 +45,7 @@
 
   <section id="empty" class="empty">
     <p class="empty-title">輸入漢字即可查詢</p>
-    <p class="empty-body">會依照詞組判斷多音字的讀音，並列出在鍵盤上實際要打的字母。</p>
+    <p class="empty-body">會依照詞組挑出正確的打法，直接告訴你在 iOS 拼音鍵盤上要按哪些字母。</p>
     <div class="examples">
       <button type="button" class="example">銀行</button>
       <button type="button" class="example">重新開始</button>
