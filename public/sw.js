@@ -1,10 +1,9 @@
 /* 把整個 App 和字典資料存到裝置上，之後完全不連網也能用。 */
-const VERSION = "c9ac4f7ba22b";
+const VERSION = "87034236c1e6";
 const CACHE = "pinyin-dict-" + VERSION;
 
 const ASSETS = [
   "./",
-  "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
@@ -43,7 +42,7 @@ self.addEventListener("fetch", (event) => {
       if (hit) return hit;
       return fetch(request).catch(() => {
         // 離線又沒快取到：導覽請求一律回首頁，其餘就讓它失敗。
-        if (request.mode === "navigate") return caches.match("./index.html");
+        if (request.mode === "navigate") return caches.match("./");
         return Response.error();
       });
     })

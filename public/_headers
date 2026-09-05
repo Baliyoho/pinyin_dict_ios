@@ -4,6 +4,3 @@
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-
-/icons/*
-  Cache-Control: public, max-age=86400
